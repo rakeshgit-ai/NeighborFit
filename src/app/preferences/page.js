@@ -1,57 +1,102 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import neighborhoods from "../../data/neighborhoods.json";
 
 export default function Preferences() {
-  const [preferences, setPreferences] = useState({
-    safety: 3,
-    nightlife: 3,
-    parks: 3,
-    schools: 3,
-    affordability: 3,
-    commute: 3,
+  const router = useRouter();
+  const [form, setForm] = useState({
+    walkability: 5,
+    nightlife: 5,
+    price: 5,
   });
 
-  const handleChange = (key, value) => {
-    setPreferences(prev => ({ ...prev, [key]: value }));
-  };
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: Number(e.target.value) });
 
-  const handleSubmit = () => {
-    console.log("User preferences:", preferences);
-    // later: make API call here
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch("/api/match", {
+      method: "POST",
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    window.localStorage.setItem("results", JSON.stringify(data));
+    router.push("/results");
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
-      <h1 className="text-4xl font-bold text-blue-700 mb-8 text-center">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 max-w-md mx-auto bg-white p-6 rounded-lg shadow-md"
+    >
+      <h1 className="text-2xl font-bold text-center text-gray-800 mb-4">
         Set Your Lifestyle Preferences
       </h1>
 
-      <div className="w-full max-w-xl space-y-6">
-        {Object.entries(preferences).map(([key, value]) => (
-          <div key={key}>
-            <div className="flex justify-between mb-1">
-              <span className="capitalize text-gray-700">{key}</span>
-              <span className="text-gray-500">{value}</span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="5"
-              value={value}
-              onChange={(e) => handleChange(key, parseInt(e.target.value))}
-              className="w-full"
-            />
-          </div>
-        ))}
+      <div className="flex flex-col space-y-4">
+        <label className="flex flex-col">
+          Walkability (1-10):
+          <input
+            type="number"
+            name="walkability"
+            min="1"
+            max="10"
+            value={form.walkability}
+            onChange={handleChange}
+            className="mt-1 p-2 border rounded"
+          />
+        </label>
+
+        <label className="flex flex-col">
+          Nightlife (1-10):
+          <input
+            type="number"
+            name="nightlife"
+            min="1"
+            max="10"
+            value={form.nightlife}
+            onChange={handleChange}
+            className="mt-1 p-2 border rounded"
+          />
+        </label>
+
+        <label className="flex flex-col">
+          Price (1-10):
+          <input
+            type="number"
+            name="price"
+            min="1"
+            max="10"
+            value={form.price}
+            onChange={handleChange}
+            className="mt-1 p-2 border rounded"
+          />
+        </label>
       </div>
 
       <button
-        onClick={handleSubmit}
-        className="mt-10 px-8 py-4 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
+        type="submit"
+        className="w-full py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
       >
         Find Matching Neighborhoods
       </button>
-    </main>
+    </form>
   );
+}
+
+export async function POST(req) {
+  const prefs = await req.json();
+  const results = neighborhoods
+    .map((n) => ({
+      ...n,
+      score:
+        100 -
+        (Math.abs(n.walkability - prefs.walkability) * 10 +
+          Math.abs(n.nightlife - prefs.nightlife) * 10 +
+          Math.abs(n.price - prefs.price) * 10),
+    }))
+    .sort((a, b) => b.score - a.score);
+  return Response.json(results);
 }

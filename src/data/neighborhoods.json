@@ -1,0 +1,5 @@
+[
+  { "name": "Greenwood", "walkability": 8, "nightlife": 6, "price": 7 },
+  { "name": "Downtown", "walkability": 9, "nightlife": 9, "price": 5 },
+  { "name": "Suburbia", "walkability": 4, "nightlife": 2, "price": 9 }
+]
